@@ -25,8 +25,7 @@ public abstract class Operator implements OpIterator {
         return next != null;
     }
 
-    public Tuple next() throws DbException, TransactionAbortedException,
-            NoSuchElementException {
+    public Tuple next() throws DbException, TransactionAbortedException, NoSuchElementException {
         if (next == null) {
             next = fetchNext();
             if (next == null)
@@ -39,15 +38,13 @@ public abstract class Operator implements OpIterator {
     }
 
     /**
-     * Returns the next Tuple in the iterator, or null if the iteration is
-     * finished. Operator uses this method to implement both <code>next</code>
-     * and <code>hasNext</code>.
+     * Returns the next Tuple in the iterator, or null if the iteration is finished.
+     * Operator uses this method to implement both <code>next</code> and
+     * <code>hasNext</code>.
      *
-     * @return the next Tuple in the iterator, or null if the iteration is
-     *         finished.
+     * @return the next Tuple in the iterator, or null if the iteration is finished.
      */
-    protected abstract Tuple fetchNext() throws DbException,
-            TransactionAbortedException;
+    protected abstract Tuple fetchNext() throws DbException, TransactionAbortedException;
 
     /**
      * Closes this iterator. If overridden by a subclass, they should call
@@ -68,17 +65,17 @@ public abstract class Operator implements OpIterator {
     }
 
     /**
-     * @return return the children DbIterators of this operator. If there is
-     *         only one child, return an array of only one element. For join
-     *         operators, the order of the children is not important. But they
-     *         should be consistent among multiple calls.
+     * @return return the children DbIterators of this operator. If there is only
+     *         one child, return an array of only one element. For join operators,
+     *         the order of the children is not important. But they should be
+     *         consistent among multiple calls.
      */
     public abstract OpIterator[] getChildren();
 
     /**
-     * Set the children(child) of this operator. If the operator has only one
-     * child, children[0] should be used. If the operator is a join, children[0]
-     * and children[1] should be used.
+     * Set the children(child) of this operator. If the operator has only one child,
+     * children[0] should be used. If the operator is a join, children[0] and
+     * children[1] should be used.
      *
      * @param children the DbIterators which are to be set as the children(child) of
      *                 this operator
@@ -91,16 +88,15 @@ public abstract class Operator implements OpIterator {
     public abstract TupleDesc getTupleDesc();
 
     /**
-     * @return The estimated cardinality of this operator. Will only be used in
-     *         lab7
+     * @return The estimated cardinality of this operator. Will only be used in lab7
      */
     public int getEstimatedCardinality() {
         return this.estimatedCardinality;
     }
 
     /**
-     * @param card The estimated cardinality of this operator Will only be used
-     *             in lab7
+     * @param card The estimated cardinality of this operator Will only be used in
+     *             lab7
      */
     public void setEstimatedCardinality(int card) {
         this.estimatedCardinality = card;

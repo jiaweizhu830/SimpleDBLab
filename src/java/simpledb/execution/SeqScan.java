@@ -133,7 +133,9 @@ public class SeqScan implements OpIterator {
 
     public void close() {
         // TODO: some code goes here (OK)
-        this.dbFileIter.close();
+        if (this.dbFileIter != null) {
+            this.dbFileIter.close();
+        }
         this.dbFileIter = null;
     }
 
