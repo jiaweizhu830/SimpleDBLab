@@ -18,8 +18,8 @@ import simpledb.transaction.TransactionAbortedException;
 import simpledb.transaction.TransactionId;
 
 public class AggregateTest extends SimpleDbTestBase {
-    public void validateAggregate(DbFile table, Aggregator.Op operation, int aggregateColumn, int groupColumn, List<List<Integer>> expectedResult)
-            throws DbException, TransactionAbortedException {
+    public void validateAggregate(DbFile table, Aggregator.Op operation, int aggregateColumn, int groupColumn,
+            List<List<Integer>> expectedResult) throws DbException, TransactionAbortedException {
         TransactionId tid = new TransactionId();
         SeqScan ss = new SeqScan(tid, table.getId(), "");
         Aggregate ag = new Aggregate(ss, aggregateColumn, groupColumn, operation);
@@ -29,19 +29,24 @@ public class AggregateTest extends SimpleDbTestBase {
     }
 
     private int computeAggregate(List<Integer> values, Aggregator.Op operation) {
-        if (operation == Aggregator.Op.COUNT) return values.size();
+        if (operation == Aggregator.Op.COUNT)
+            return values.size();
 
         int value = 0;
-        if (operation == Aggregator.Op.MIN) value = Integer.MAX_VALUE;
-        else if (operation == Aggregator.Op.MAX) value = Integer.MIN_VALUE;
+        if (operation == Aggregator.Op.MIN)
+            value = Integer.MAX_VALUE;
+        else if (operation == Aggregator.Op.MAX)
+            value = Integer.MIN_VALUE;
 
         for (int v : values) {
             switch (operation) {
                 case MAX:
-                    if (v > value) value = v;
+                    if (v > value)
+                        value = v;
                     break;
                 case MIN:
-                    if (v < value) value = v;
+                    if (v < value)
+                        value = v;
                     break;
                 case AVG:
                 case SUM:
@@ -52,7 +57,9 @@ public class AggregateTest extends SimpleDbTestBase {
             }
         }
 
-        if (operation == Aggregator.Op.AVG) value /= values.size();
+        int sum = value;
+        if (operation == Aggregator.Op.AVG)
+            value /= values.size();
         return value;
     }
 
@@ -61,17 +68,19 @@ public class AggregateTest extends SimpleDbTestBase {
         Map<Integer, List<Integer>> values = new HashMap<>();
         for (List<Integer> t : tuples) {
             Integer key = null;
-            if (groupColumn != Aggregator.NO_GROUPING) key = t.get(groupColumn);
+            if (groupColumn != Aggregator.NO_GROUPING)
+                key = t.get(groupColumn);
             Integer value = t.get(1);
-
-            if (!values.containsKey(key)) values.put(key, new ArrayList<>());
+            if (!values.containsKey(key))
+                values.put(key, new ArrayList<>());
             values.get(key).add(value);
         }
 
         List<List<Integer>> results = new ArrayList<>();
         for (Map.Entry<Integer, List<Integer>> e : values.entrySet()) {
             List<Integer> result = new ArrayList<>();
-            if (groupColumn != Aggregator.NO_GROUPING) result.add(e.getKey());
+            if (groupColumn != Aggregator.NO_GROUPING)
+                result.add(e.getKey());
             result.add(computeAggregate(e.getValue(), operation));
             results.add(result);
         }
@@ -81,43 +90,47 @@ public class AggregateTest extends SimpleDbTestBase {
     private final static int ROWS = 1024;
     private final static int MAX_VALUE = 64;
     private final static int COLUMNS = 3;
+
     private void doAggregate(Aggregator.Op operation, int groupColumn)
             throws IOException, DbException, TransactionAbortedException {
         // Create the table
         List<List<Integer>> createdTuples = new ArrayList<>();
-        HeapFile table = SystemTestUtil.createRandomHeapFile(
-                COLUMNS, ROWS, MAX_VALUE, null, createdTuples);
+        HeapFile table = SystemTestUtil.createRandomHeapFile(COLUMNS, ROWS, MAX_VALUE, null, createdTuples);
 
         // Compute the expected answer
-        List<List<Integer>> expected =
-                aggregate(createdTuples, operation, groupColumn);
+        List<List<Integer>> expected = aggregate(createdTuples, operation, groupColumn);
 
         // validate that we get the answer
         validateAggregate(table, operation, 1, groupColumn, expected);
     }
 
-    @Test public void testSum() throws IOException, DbException, TransactionAbortedException {
+    @Test
+    public void testSum() throws IOException, DbException, TransactionAbortedException {
         doAggregate(Aggregator.Op.SUM, 0);
     }
 
-    @Test public void testMin() throws IOException, DbException, TransactionAbortedException {
+    @Test
+    public void testMin() throws IOException, DbException, TransactionAbortedException {
         doAggregate(Aggregator.Op.MIN, 0);
     }
 
-    @Test public void testMax() throws IOException, DbException, TransactionAbortedException {
+    @Test
+    public void testMax() throws IOException, DbException, TransactionAbortedException {
         doAggregate(Aggregator.Op.MAX, 0);
     }
 
-    @Test public void testCount() throws IOException, DbException, TransactionAbortedException {
+    @Test
+    public void testCount() throws IOException, DbException, TransactionAbortedException {
         doAggregate(Aggregator.Op.COUNT, 0);
     }
 
-    @Test public void testAverage() throws IOException, DbException, TransactionAbortedException {
+    @Test
+    public void testAverage() throws IOException, DbException, TransactionAbortedException {
         doAggregate(Aggregator.Op.AVG, 0);
     }
 
-    @Test public void testAverageNoGroup()
-            throws IOException, DbException, TransactionAbortedException {
+    @Test
+    public void testAverageNoGroup() throws IOException, DbException, TransactionAbortedException {
         doAggregate(Aggregator.Op.AVG, Aggregator.NO_GROUPING);
     }
 
