@@ -9,8 +9,10 @@ import simpledb.transaction.TransactionId;
 import java.io.*;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
 
@@ -31,6 +33,7 @@ public class HeapPage implements Page {
 
     byte[] oldData;
     private final Byte oldDataLock = (byte) 0;
+    private TransactionId dirtyTransactionId;
 
     /**
      * Create a HeapPage from a set of bytes of data read from disk. The format of a
@@ -260,8 +263,24 @@ public class HeapPage implements Page {
      *                     already empty.
      */
     public void deleteTuple(Tuple t) throws DbException {
-        // TODO: some code goes here
+        // TODO: some code goes here (OK)
         // not necessary for lab1
+
+        // Find tuple
+        for (int i = 0; i < tuples.length; i++) {
+            Tuple cur = tuples[i];
+            if (cur != null && cur.getRecordId().equals(t.getRecordId())) {
+                // mark slot as unused in the header
+                if (isSlotUsed(i)) {
+                    markSlotUsed(i, false);
+                    return;
+                } else {
+                    throw new DbException("Tuple slot is already empty.");
+                }
+            }
+        }
+
+        throw new DbException("Tuple is not on this page.");
     }
 
     /**
@@ -273,8 +292,25 @@ public class HeapPage implements Page {
      *                     mismatch.
      */
     public void insertTuple(Tuple t) throws DbException {
-        // TODO: some code goes here
+        // TODO: some code goes here (OK)
         // not necessary for lab1
+
+        // find first unused slot, and fill in the tuple
+        for (int i = 0; i < tuples.length; i++) {
+            if (!isSlotUsed(i)) {
+                if (tuples[i] != null && !tuples[i].getTupleDesc().equals(t.getTupleDesc())) {
+                    throw new DbException("TupleDesc is mismatch");
+                }
+                // mark slot as used
+                markSlotUsed(i, true);
+                // update tuples
+                t.setRecordId(new RecordId(pid, i));
+                tuples[i] = t;
+                return;
+            }
+        }
+
+        throw new DbException("Page is full.");
     }
 
     /**
@@ -282,8 +318,13 @@ public class HeapPage implements Page {
      * dirtying
      */
     public void markDirty(boolean dirty, TransactionId tid) {
-        // TODO: some code goes here
+        // TODO: some code goes here (OK)
         // not necessary for lab1
+        if (dirty) {
+            dirtyTransactionId = tid;
+        } else {
+            dirtyTransactionId = null;
+        }
     }
 
     /**
@@ -291,9 +332,9 @@ public class HeapPage implements Page {
      * the page is not dirty
      */
     public TransactionId isDirty() {
-        // TODO: some code goes here
+        // TODO: some code goes here (OK)
         // Not necessary for lab1
-        return null;
+        return dirtyTransactionId;
     }
 
     /**
@@ -329,8 +370,18 @@ public class HeapPage implements Page {
      * Abstraction to fill or clear a slot on this page.
      */
     private void markSlotUsed(int i, boolean value) {
-        // TODO: some code goes here
+        // TODO: some code goes here (OK)
         // not necessary for lab1
+
+        int slotIdx = i / 8;
+        int bitIdx = i % 8;
+        if (value) {
+            // mark used
+            header[slotIdx] |= (1 << bitIdx);
+        } else {
+            // mark unused
+            header[slotIdx] &= (~(1 << bitIdx));
+        }
     }
 
     /**

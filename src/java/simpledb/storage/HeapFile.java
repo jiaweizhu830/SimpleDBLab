@@ -12,6 +12,7 @@ import simpledb.transaction.TransactionId;
 
 import java.io.*;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -32,7 +33,6 @@ public class HeapFile implements DbFile {
 
     private File f;
     private TupleDesc td;
-    private Map<PageId, Page> pageMap;
 
     /**
      * Constructs a heap file backed by the specified file.
@@ -106,37 +106,84 @@ public class HeapFile implements DbFile {
 
     // see DbFile.java for javadocs
     public void writePage(Page page) throws IOException {
-        // TODO: some code goes here
+        // TODO: some code goes here (OK)
         // not necessary for lab1
+
+        // find space in file
+        RandomAccessFile raf = new RandomAccessFile(f, "rw");
+        raf.seek(page.getId().getPageNumber() * BufferPool.getPageSize());
+        // write page to file
+        byte[] data = page.getPageData();
+        raf.write(data);
+        raf.close();
     }
 
     /**
      * Returns the number of pages in this HeapFile.
      */
     public int numPages() {
-        // TODO: some code goes here
+        // TODO: some code goes here (OK)
         return (int) (f.length() / BufferPool.getPageSize());
     }
 
     // see DbFile.java for javadocs
     public List<Page> insertTuple(TransactionId tid, Tuple t)
             throws DbException, IOException, TransactionAbortedException {
-        // TODO: some code goes here
-        return null;
+        // TODO: some code goes here (OK)
         // not necessary for lab1
+
+        List<Page> modifiedPages = new ArrayList<>();
+        // find page that has empty slots
+        for (int i = 0; i < numPages(); i++) {
+            BufferPool bufferPool = Database.getBufferPool();
+            // get page from cache
+            HeapPage page = (HeapPage) bufferPool.getPage(tid, new HeapPageId(this.getId(), i), Permissions.READ_WRITE);
+
+            if (page.getNumUnusedSlots() > 0) {
+                page.insertTuple(t);
+                // update disk
+                // writePage(page);
+
+                modifiedPages.add(page);
+                return modifiedPages;
+            }
+        }
+
+        BufferedOutputStream bw = new BufferedOutputStream(new FileOutputStream(f, true));
+        byte[] data = HeapPage.createEmptyPageData();
+        // add new empty page to the file
+        bw.write(data);
+        bw.close();
+        HeapPageId pid = new HeapPageId(this.getId(), numPages() - 1);
+
+        // update buffer/cache
+        HeapPage page = (HeapPage) Database.getBufferPool().getPage(tid, pid, Permissions.READ_WRITE);
+        page.insertTuple(t);
+        // update disk
+        // writePage(page);
+
+        modifiedPages.add(page);
+        return modifiedPages;
     }
 
     // see DbFile.java for javadocs
     public List<Page> deleteTuple(TransactionId tid, Tuple t) throws DbException, TransactionAbortedException {
-        // TODO: some code goes here
-        return null;
+        // TODO: some code goes here (OK)
         // not necessary for lab1
+
+        // find page
+        RecordId rid = t.getRecordId();
+        BufferPool bufferPool = Database.getBufferPool();
+        HeapPage page = (HeapPage) bufferPool.getPage(tid, rid.getPageId(), Permissions.READ_WRITE);
+        // remove tuple on the page
+        page.deleteTuple(t);
+        return Arrays.asList(page);
     }
 
     // see DbFile.java for javadocs
     // iterate through through the tuples of each page in the HeapFile
     public DbFileIterator iterator(TransactionId tid) {
-        // TODO: some code goes here
+        // TODO: some code goes here (OK)
         return new HeapFile.HeapFileIterator(this, null);
     }
 
@@ -174,12 +221,12 @@ public class HeapFile implements DbFile {
 
         @Override
         public Tuple next() throws DbException, TransactionAbortedException, NoSuchElementException {
-            // TODO Auto-generated method stub
             if (tpIter == null) {
                 throw new NoSuchElementException();
             }
             if (hasNext()) {
-                if (!tpIter.hasNext()) {
+                // find the next non-empty page
+                while (!tpIter.hasNext() && this.pgCursor < this.heapFile.numPages() - 1) {
                     Page pg = Database.getBufferPool().getPage(this.tid,
                             new HeapPageId(heapFile.getId(), ++this.pgCursor), Permissions.READ_ONLY);
                     tpIter = ((HeapPage) pg).iterator();

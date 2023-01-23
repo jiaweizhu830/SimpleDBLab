@@ -155,6 +155,18 @@ public class BufferPool {
             throws DbException, IOException, TransactionAbortedException {
         // TODO: some code goes here
         // not necessary for lab1
+
+        // TODO: add lock on modified page
+        HeapFile file = (HeapFile) Database.getCatalog().getDatabaseFile(tableId);
+        if (file == null) {
+            return;
+        }
+
+        List<Page> dirtyPages = file.insertTuple(tid, t);
+        for (Page page : dirtyPages) {
+            page.markDirty(true, tid);
+            pageMap.put(page.getId(), page);
+        }
     }
 
     /**
@@ -171,8 +183,21 @@ public class BufferPool {
      * @param t   the tuple to delete
      */
     public void deleteTuple(TransactionId tid, Tuple t) throws DbException, IOException, TransactionAbortedException {
-        // TODO: some code goes here
+        // TODO: some code goes here (OK)
         // not necessary for lab1
+
+        // TODO: add lock on modified page
+        int tableId = t.getRecordId().getPageId().getTableId();
+        HeapFile file = (HeapFile) Database.getCatalog().getDatabaseFile(tableId);
+        if (file == null) {
+            return;
+        }
+
+        List<Page> dirtyPages = file.deleteTuple(tid, t);
+        for (Page page : dirtyPages) {
+            page.markDirty(true, tid);
+            pageMap.put(page.getId(), page);
+        }
     }
 
     /**

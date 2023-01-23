@@ -20,19 +20,22 @@ public class HeapFileWriteTest extends TestUtil.CreateHeapFile {
     /**
      * Set up initial resources for each unit test.
      */
-    @Before public void setUp() throws Exception {
+    @Before
+    public void setUp() throws Exception {
         super.setUp();
         tid = new TransactionId();
     }
 
-    @After public void tearDown() {
+    @After
+    public void tearDown() {
         Database.getBufferPool().transactionComplete(tid);
     }
 
     /**
      * Unit test for HeapFile.addTuple()
      */
-    @Test public void addTuple() throws Exception {
+    @Test
+    public void addTuple() throws Exception {
         // we should be able to add 504 tuples on an empty page.
         for (int i = 0; i < 504; ++i) {
             empty.insertTuple(tid, Utility.getHeapTuple(i, 2));
@@ -53,12 +56,11 @@ public class HeapFileWriteTest extends TestUtil.CreateHeapFile {
     @Test
     public void testAlternateEmptyAndFullPagesThenIterate() throws Exception {
         // Create HeapFile/Table
-        HeapFile smallFile = SystemTestUtil.createRandomHeapFile(2, 3, null,
-                null);
+        HeapFile smallFile = SystemTestUtil.createRandomHeapFile(2, 3, null, null);
         // Grab table id
         int tableId = smallFile.getId();
         int tdSize = 8;
-        int numTuples = (BufferPool.getPageSize()*8) / (tdSize * 8 + 1);
+        int numTuples = (BufferPool.getPageSize() * 8) / (tdSize * 8 + 1);
         int headerSize = (int) Math.ceil(numTuples / 8.0);
         // Leave these as all zeroes so this entire page is empty
         byte[] empty = new byte[numTuples * 8 + headerSize];
@@ -86,7 +88,7 @@ public class HeapFileWriteTest extends TestUtil.CreateHeapFile {
             count += 1;
         }
         // Since we have two full pages, we should see all of 2*numTuples.
-        assertEquals(2*numTuples, count);
+        assertEquals(2 * numTuples, count);
         it.close();
     }
 
@@ -97,4 +99,3 @@ public class HeapFileWriteTest extends TestUtil.CreateHeapFile {
         return new JUnit4TestAdapter(HeapFileWriteTest.class);
     }
 }
-
