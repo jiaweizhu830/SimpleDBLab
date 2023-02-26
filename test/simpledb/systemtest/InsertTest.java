@@ -18,15 +18,13 @@ import simpledb.transaction.TransactionId;
 
 public class InsertTest extends SimpleDbTestBase {
     private void validateInsert(int columns, int sourceRows, int destinationRows)
-                throws DbException, IOException, TransactionAbortedException {
+            throws DbException, IOException, TransactionAbortedException {
         // Create the two tables
         List<List<Integer>> sourceTuples = new ArrayList<>();
-        HeapFile source = SystemTestUtil.createRandomHeapFile(
-                columns, sourceRows, null, sourceTuples);
+        HeapFile source = SystemTestUtil.createRandomHeapFile(columns, sourceRows, null, sourceTuples);
         assert sourceTuples.size() == sourceRows;
         List<List<Integer>> destinationTuples = new ArrayList<>();
-        HeapFile destination = SystemTestUtil.createRandomHeapFile(
-                columns, destinationRows, null, destinationTuples);
+        HeapFile destination = SystemTestUtil.createRandomHeapFile(columns, destinationRows, null, destinationTuples);
         assert destinationTuples.size() == destinationRows;
 
         // Insert source into destination
@@ -34,7 +32,7 @@ public class InsertTest extends SimpleDbTestBase {
         SeqScan ss = new SeqScan(tid, source.getId(), "");
         Insert insOp = new Insert(tid, ss, destination.getId());
 
-//        Query q = new Query(insOp, tid);
+        // Query q = new Query(insOp, tid);
         insOp.open();
         boolean hasResult = false;
         while (insOp.hasNext()) {
@@ -57,23 +55,23 @@ public class InsertTest extends SimpleDbTestBase {
         SystemTestUtil.matchTuples(destination, sourceTuples);
     }
 
-    @Test public void testEmptyToEmpty()
-            throws IOException, DbException, TransactionAbortedException {
+    @Test
+    public void testEmptyToEmpty() throws IOException, DbException, TransactionAbortedException {
         validateInsert(3, 0, 0);
     }
 
-    @Test public void testEmptyToOne()
-            throws IOException, DbException, TransactionAbortedException {
+    @Test
+    public void testEmptyToOne() throws IOException, DbException, TransactionAbortedException {
         validateInsert(8, 0, 1);
     }
 
-    @Test public void testOneToEmpty()
-            throws IOException, DbException, TransactionAbortedException {
+    @Test
+    public void testOneToEmpty() throws IOException, DbException, TransactionAbortedException {
         validateInsert(3, 1, 0);
     }
 
-    @Test public void testOneToOne()
-            throws IOException, DbException, TransactionAbortedException {
+    @Test
+    public void testOneToOne() throws IOException, DbException, TransactionAbortedException {
         validateInsert(1, 1, 1);
     }
 
