@@ -87,6 +87,15 @@ public class BufferPool {
         if (page == null) {
             DbFile dbFile = Database.getCatalog().getDatabaseFile(pid.getTableId());
             page = dbFile.readPage(pid);
+
+            // evict page from buffer pool and flush to disk if buffer pool is occupied
+            if (pageMap.size() > numPages) {
+                try {
+                    evictPage();
+                } catch (IOException ex) {
+                    return null;
+                }
+            }
             pageMap.put(pid, page);
         }
         return page;
@@ -205,9 +214,11 @@ public class BufferPool {
      * dirty data to disk so will break simpledb if running in NO STEAL mode.
      */
     public synchronized void flushAllPages() throws IOException {
-        // TODO: some code goes here
+        // TODO: some code goes here (OK)
         // not necessary for lab1
-
+        for (PageId pid : pageMap.keySet()) {
+            flushPage(pid);
+        }
     }
 
     /**
@@ -219,8 +230,9 @@ public class BufferPool {
      * cache so they can be reused safely
      */
     public synchronized void removePage(PageId pid) {
-        // TODO: some code goes here
+        // TODO: some code goes here (OK)
         // not necessary for lab1
+        pageMap.remove(pid);
     }
 
     /**
@@ -229,8 +241,24 @@ public class BufferPool {
      * @param pid an ID indicating the page to flush
      */
     private synchronized void flushPage(PageId pid) throws IOException {
-        // TODO: some code goes here
+        // TODO: some code goes here (OK)
         // not necessary for lab1
+
+        // Write dirty page to disk, mark it as not dirty
+        Page page = pageMap.get(pid);
+        if (page == null)
+            return;
+
+        TransactionId tid = page.isDirty();
+        if (tid != null) {
+            HeapFile file = (HeapFile) Database.getCatalog().getDatabaseFile(page.getId().getTableId());
+            if (file == null) {
+                return;
+            }
+
+            file.writePage(page);
+            page.markDirty(false, tid);
+        }
     }
 
     /**
@@ -245,9 +273,15 @@ public class BufferPool {
      * Discards a page from the buffer pool. Flushes the page to disk to ensure
      * dirty pages are updated on disk.
      */
-    private synchronized void evictPage() throws DbException {
-        // TODO: some code goes here
+    private synchronized void evictPage() throws DbException, IOException {
+        // TODO: some code goes here (OK)
         // not necessary for lab1
+
+        for (PageId pid : pageMap.keySet()) {
+            flushPage(pid);
+            removePage(pid);
+            break;
+        }
     }
 
 }
