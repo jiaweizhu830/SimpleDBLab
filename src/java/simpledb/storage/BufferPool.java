@@ -87,22 +87,17 @@ public class BufferPool {
     public Page getPage(TransactionId tid, PageId pid, Permissions perm)
             throws TransactionAbortedException, DbException {
         // TODO: some code goes here (OK)
+        acquireLock(tid, pid, perm);
+
         Page page = pageMap.get(pid);
-        if (!lockManager.acquireLock(tid, pid, perm)) {
-            throw new TransactionAbortedException();
-        }
         if (page == null) {
             DbFile dbFile = Database.getCatalog().getDatabaseFile(pid.getTableId());
             page = dbFile.readPage(pid);
 
             // evict page from buffer pool and flush to disk if buffer pool is occupied
-            if (pageMap.size() > numPages) {
-                try {
-                    evictPage();
-                } catch (IOException ex) {
-                    return null;
-                }
-            }
+            if (!evictPageFromBufferPool())
+                return null;
+
             pageMap.put(pid, page);
         }
         return page;
@@ -167,9 +162,11 @@ public class BufferPool {
             // restore the page in buffer pool to its on-disk state
             Set<PageId> pids = lockManager.getPageIdsFromTransactionId(tid);
 
-            for (PageId pid : pids) {
-                DbFile dbFile = Database.getCatalog().getDatabaseFile(pid.getTableId());
-                pageMap.put(pid, dbFile.readPage(pid));
+            if (pids != null) {
+                for (PageId pid : pids) {
+                    DbFile dbFile = Database.getCatalog().getDatabaseFile(pid.getTableId());
+                    pageMap.put(pid, dbFile.readPage(pid));
+                }
             }
         }
 
@@ -197,7 +194,6 @@ public class BufferPool {
         // TODO: some code goes here (OK)
         // not necessary for lab1
 
-        // TODO: add lock on modified page
         HeapFile file = (HeapFile) Database.getCatalog().getDatabaseFile(tableId);
         if (file == null) {
             return;
@@ -226,8 +222,6 @@ public class BufferPool {
     public void deleteTuple(TransactionId tid, Tuple t) throws DbException, IOException, TransactionAbortedException {
         // TODO: some code goes here (OK)
         // not necessary for lab1
-
-        // TODO: add lock on modified page
         int tableId = t.getRecordId().getPageId().getTableId();
         HeapFile file = (HeapFile) Database.getCatalog().getDatabaseFile(tableId);
         if (file == null) {
@@ -328,6 +322,35 @@ public class BufferPool {
         }
 
         throw new DbException("All pages in Buffer Pool are dirty. Cannot evict any pages.");
+    }
+
+    private synchronized boolean evictPageFromBufferPool() throws DbException {
+        while (pageMap.size() >= numPages) {
+            try {
+                evictPage();
+            } catch (IOException ex) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private synchronized void acquireLock(TransactionId tid, PageId pid, Permissions perm)
+            throws TransactionAbortedException {
+        boolean lockAquired = false;
+
+        long timeout = new Random().nextInt(20) + 10;
+        long start = System.currentTimeMillis();
+
+        while (!lockAquired) {
+            if (System.currentTimeMillis() - start > timeout) {
+                // Deadlock is detected (timeout) -> abort the transaction
+                throw new TransactionAbortedException();
+            }
+            if (lockManager.acquireLock(tid, pid, perm)) {
+                lockAquired = true;
+            }
+        }
     }
 
 }

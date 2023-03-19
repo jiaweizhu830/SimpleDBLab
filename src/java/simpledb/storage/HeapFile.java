@@ -142,7 +142,7 @@ public class HeapFile implements DbFile {
             if (page.getNumUnusedSlots() > 0) {
                 page.insertTuple(t);
                 // update disk
-                // writePage(page);
+                writePage(page);
 
                 modifiedPages.add(page);
                 return modifiedPages;
@@ -160,7 +160,7 @@ public class HeapFile implements DbFile {
         HeapPage page = (HeapPage) Database.getBufferPool().getPage(tid, pid, Permissions.READ_WRITE);
         page.insertTuple(t);
         // update disk
-        // writePage(page);
+        writePage(page);
 
         modifiedPages.add(page);
         return modifiedPages;
