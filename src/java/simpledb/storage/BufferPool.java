@@ -4,6 +4,7 @@ import simpledb.common.Database;
 import simpledb.common.DbException;
 import simpledb.common.DeadlockException;
 import simpledb.common.Permissions;
+import simpledb.transaction.LockManager;
 import simpledb.transaction.TransactionAbortedException;
 import simpledb.transaction.TransactionId;
 
@@ -42,6 +43,8 @@ public class BufferPool {
 
     private Map<PageId, Page> pageMap;
 
+    private LockManager lockManager;
+
     /**
      * Creates a BufferPool that caches up to numPages pages.
      *
@@ -51,6 +54,7 @@ public class BufferPool {
         // TODO: some code goes here (OK)
         this.numPages = numPages;
         pageMap = new HashMap<>(this.numPages);
+        lockManager = new LockManager();
     }
 
     public static int getPageSize() {
@@ -84,6 +88,9 @@ public class BufferPool {
             throws TransactionAbortedException, DbException {
         // TODO: some code goes here (OK)
         Page page = pageMap.get(pid);
+        if (!lockManager.acquireLock(tid, pid, perm)) {
+            throw new TransactionAbortedException();
+        }
         if (page == null) {
             DbFile dbFile = Database.getCatalog().getDatabaseFile(pid.getTableId());
             page = dbFile.readPage(pid);
@@ -110,8 +117,10 @@ public class BufferPool {
      * @param pid the ID of the page to unlock
      */
     public void unsafeReleasePage(TransactionId tid, PageId pid) {
-        // TODO: some code goes here
+        // TODO: some code goes here (OK)
         // not necessary for lab1|lab2
+
+        lockManager.releaseLock(tid, pid);
     }
 
     /**
@@ -120,17 +129,21 @@ public class BufferPool {
      * @param tid the ID of the transaction requesting the unlock
      */
     public void transactionComplete(TransactionId tid) {
-        // TODO: some code goes here
+        // TODO: some code goes here (OK)
         // not necessary for lab1|lab2
+
+        for (PageId pid : pageMap.keySet()) {
+            lockManager.releaseLock(tid, pid);
+        }
     }
 
     /**
      * Return true if the specified transaction has a lock on the specified page
      */
     public boolean holdsLock(TransactionId tid, PageId p) {
-        // TODO: some code goes here
+        // TODO: some code goes here (OK)
         // not necessary for lab1|lab2
-        return false;
+        return lockManager.holdsLock(tid, p);
     }
 
     /**
@@ -141,8 +154,27 @@ public class BufferPool {
      * @param commit a flag indicating whether we should commit or abort
      */
     public void transactionComplete(TransactionId tid, boolean commit) {
-        // TODO: some code goes here
+        // TODO: some code goes here (OK)
         // not necessary for lab1|lab2
+
+        if (commit) {
+            // commit
+            try {
+                // flush committed pages to disk
+                flushPages(tid);
+            } catch (IOException ex) {
+            }
+            // release lock
+            lockManager.releaseLock(tid);
+        } else {
+            // abort
+            // remove aborted pages from buffer pool
+            Set<PageId> pages = lockManager.getPageIdsFromTransactionId(tid);
+            if (pages != null)
+                pages.forEach(page -> removePage(page));
+            // release lock
+            lockManager.releaseLock(tid);
+        }
     }
 
     /**
@@ -162,7 +194,7 @@ public class BufferPool {
      */
     public void insertTuple(TransactionId tid, int tableId, Tuple t)
             throws DbException, IOException, TransactionAbortedException {
-        // TODO: some code goes here
+        // TODO: some code goes here (OK)
         // not necessary for lab1
 
         // TODO: add lock on modified page
@@ -265,8 +297,13 @@ public class BufferPool {
      * Write all pages of the specified transaction to disk.
      */
     public synchronized void flushPages(TransactionId tid) throws IOException {
-        // TODO: some code goes here
+        // TODO: some code goes here (OK)
         // not necessary for lab1|lab2
+
+        Set<PageId> pids = lockManager.getPageIdsFromTransactionId(tid);
+        for (PageId pid : pids) {
+            flushPage(pid);
+        }
     }
 
     /**
