@@ -184,7 +184,7 @@ public class HeapFile implements DbFile {
     // iterate through through the tuples of each page in the HeapFile
     public DbFileIterator iterator(TransactionId tid) {
         // TODO: some code goes here (OK)
-        return new HeapFile.HeapFileIterator(this, null);
+        return new HeapFile.HeapFileIterator(this, tid);
     }
 
     private static class HeapFileIterator implements DbFileIterator {

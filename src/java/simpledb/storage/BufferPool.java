@@ -132,9 +132,7 @@ public class BufferPool {
         // TODO: some code goes here (OK)
         // not necessary for lab1|lab2
 
-        for (PageId pid : pageMap.keySet()) {
-            lockManager.releaseLock(tid, pid);
-        }
+        transactionComplete(tid, true);
     }
 
     /**
@@ -164,17 +162,19 @@ public class BufferPool {
                 flushPages(tid);
             } catch (IOException ex) {
             }
-            // release lock
-            lockManager.releaseLock(tid);
         } else {
             // abort
-            // remove aborted pages from buffer pool
-            Set<PageId> pages = lockManager.getPageIdsFromTransactionId(tid);
-            if (pages != null)
-                pages.forEach(page -> removePage(page));
-            // release lock
-            lockManager.releaseLock(tid);
+            // restore the page in buffer pool to its on-disk state
+            Set<PageId> pids = lockManager.getPageIdsFromTransactionId(tid);
+
+            for (PageId pid : pids) {
+                DbFile dbFile = Database.getCatalog().getDatabaseFile(pid.getTableId());
+                pageMap.put(pid, dbFile.readPage(pid));
+            }
         }
+
+        // release lock
+        lockManager.releaseLock(tid);
     }
 
     /**
@@ -323,7 +323,7 @@ public class BufferPool {
             if (p.isDirty() == null) {
                 flushPage(pid);
                 removePage(pid);
-                break;
+                return;
             }
         }
 

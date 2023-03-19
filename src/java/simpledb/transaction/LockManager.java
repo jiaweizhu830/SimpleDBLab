@@ -26,7 +26,10 @@ public class LockManager {
             locks.add(new LockManager.Lock(tid, permission));
             lockMap.put(p, locks);
 
-            Set<PageId> pages = new HashSet<>();
+            Set<PageId> pages = txMap.get(tid);
+            if (pages == null) {
+                pages = new HashSet<>();
+            }
             pages.add(p);
             txMap.put(tid, pages);
             return true;
