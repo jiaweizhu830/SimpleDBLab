@@ -309,16 +309,25 @@ public class BufferPool {
     /**
      * Discards a page from the buffer pool. Flushes the page to disk to ensure
      * dirty pages are updated on disk.
+     * 
+     * No Steal -> not evict dirty page. If the transaction aborts, the dirty page
+     * should be cleaned
      */
     private synchronized void evictPage() throws DbException, IOException {
         // TODO: some code goes here (OK)
         // not necessary for lab1
 
-        for (PageId pid : pageMap.keySet()) {
-            flushPage(pid);
-            removePage(pid);
-            break;
+        for (Map.Entry<PageId, Page> entry : pageMap.entrySet()) {
+            PageId pid = entry.getKey();
+            Page p = entry.getValue();
+            if (p.isDirty() == null) {
+                flushPage(pid);
+                removePage(pid);
+                break;
+            }
         }
+
+        throw new DbException("All pages in Buffer Pool are dirty. Cannot evict any pages.");
     }
 
 }
